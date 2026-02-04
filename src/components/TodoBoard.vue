@@ -43,11 +43,26 @@ const monthlyDays = computed(() => getCalendarDaysOfMonth(calendarYear.value, ca
 const calendarYear = ref(new Date().getFullYear());
 const calendarMonth = ref(new Date().getMonth());
 
+// 限制範圍邏輯
+const today = new Date();
+const currentTotalMonths = today.getFullYear() * 12 + today.getMonth();
+
+const canGoPrev = computed(() => {
+  const targetTotalMonths = calendarYear.value * 12 + calendarMonth.value;
+  return targetTotalMonths > currentTotalMonths - 1;
+});
+
+const canGoNext = computed(() => {
+  const targetTotalMonths = calendarYear.value * 12 + calendarMonth.value;
+  return targetTotalMonths < currentTotalMonths + 1;
+});
+
 const monthHeaderName = computed(() => {
   return `${calendarYear.value}年 ${calendarMonth.value + 1}月`;
 });
 
 const prevMonth = () => {
+  if (!canGoPrev.value) return;
   if (calendarMonth.value === 0) {
     calendarYear.value--;
     calendarMonth.value = 11;
@@ -57,6 +72,7 @@ const prevMonth = () => {
 };
 
 const nextMonth = () => {
+  if (!canGoNext.value) return;
   if (calendarMonth.value === 11) {
     calendarYear.value++;
     calendarMonth.value = 0;
@@ -184,15 +200,15 @@ onUnmounted(() => window.removeEventListener('resize', handleResize));
           <!-- Monthly View - 改為當月月曆網格 (Flex 換行模式) -->
           <div v-if="currentView === 'monthly'" class="monthly-view-calendar">
             <div class="calendar-header-info">
-              <div class="month-nav">
-                <button @click="prevMonth" class="nav-arrow-btn" title="上個月">
-                  <ChevronLeft :size="20" />
-                </button>
-                <h3 class="calendar-month-title">{{ monthHeaderName }}</h3>
-                <button @click="nextMonth" class="nav-arrow-btn" title="下個月">
-                  <ChevronRight :size="20" />
-                </button>
-              </div>
+        <div class="month-nav">
+          <button class="nav-arrow-btn" @click="prevMonth" :disabled="!canGoPrev" :class="{ disabled: !canGoPrev }" title="上個月">
+            <ChevronLeft :size="20" />
+          </button>
+          <span class="calendar-month-title">{{ monthHeaderName }}</span>
+          <button class="nav-arrow-btn" @click="nextMonth" :disabled="!canGoNext" :class="{ disabled: !canGoNext }" title="下個月">
+            <ChevronRight :size="20" />
+          </button>
+        </div>
               <div class="calendar-legend">
                 <span class="legend-item"><span class="legend-dot today"></span> 今日</span>
               </div>
@@ -316,15 +332,16 @@ onUnmounted(() => window.removeEventListener('resize', handleResize));
 
 /* Monthly Calendar Styles */
 .monthly-view-calendar { display: flex; flex-direction: column; gap: 20px; height: 100%; }
-.calendar-header-info { display: flex; align-items: center; justify-content: space-between; }
-.month-nav { display: flex; align-items: center; gap: 15px; }
+.calendar-header-info { display: flex; align-items: center; justify-content: space-between; padding: 0 5px; }
+.month-nav { display: flex; align-items: center; gap: 20px; padding: 5px; }
 .nav-arrow-btn { 
   background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border); 
   color: var(--text-secondary); width: 36px; height: 36px; border-radius: 50%; 
   display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; cursor: pointer;
 }
-.nav-arrow-btn:hover { background: rgba(255, 255, 255, 0.1); color: var(--text-primary); border-color: rgba(255, 255, 255, 0.2); transform: scale(1.1); }
-.nav-arrow-btn:active { transform: scale(0.95); }
+.nav-arrow-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.1); color: var(--text-primary); border-color: rgba(255, 255, 255, 0.2); transform: scale(1.1); box-shadow: 0 0 10px rgba(129, 140, 248, 0.2); }
+.nav-arrow-btn:active:not(:disabled) { transform: scale(0.95); }
+.nav-arrow-btn:disabled, .nav-arrow-btn.disabled { opacity: 0.3; cursor: not-allowed; transform: none; pointer-events: none; border-color: transparent; }
 
 .calendar-month-title { font-size: 1.4rem; color: var(--text-primary); font-weight: 700; min-width: 150px; text-align: center; }
 .calendar-legend { display: flex; gap: 15px; font-size: 0.8rem; color: var(--text-secondary); }
